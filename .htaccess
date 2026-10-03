@@ -1,0 +1,10 @@
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(app|config|database|includes|scripts)(/|$) - [F,L,NC]
+</IfModule>
+
+<FilesMatch "(^README\.md$|\.sql$)">
+  Require all denied
+</FilesMatch>

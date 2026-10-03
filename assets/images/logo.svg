@@ -1,0 +1,7 @@
+<svg width="220" height="76" viewBox="0 0 220 76" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="220" height="76" rx="18" fill="#0D3B66"/>
+  <rect x="16" y="16" width="44" height="44" rx="12" fill="#E8F1FB"/>
+  <path d="M30 27.5H58V35.5H30V27.5ZM30 40.5H58V48.5H30V40.5Z" fill="#0D3B66"/>
+  <path d="M73 23H139C145.627 23 151 28.3726 151 35V41C151 47.6274 145.627 53 139 53H73V23Z" fill="#F8FBFF" fill-opacity="0.16"/>
+  <text x="160" y="45" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700">أرشيف</text>
+</svg>
