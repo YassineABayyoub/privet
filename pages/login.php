@@ -18,6 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($username === '' || $password === '') {
         $errorKey = 'required';
+    } elseif (login_is_throttled($username)) {
+        $errorKey = 'locked';
     } else {
         $statement = database()->prepare(
             'SELECT id, username, display_name, password_hash, role, is_active FROM users WHERE username = :username LIMIT 1'
@@ -25,13 +27,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $statement->execute(['username' => $username]);
         $account = $statement->fetch();
 
-        if (
-            $account === false
-            || !(bool) $account['is_active']
-            || !password_verify($password, $account['password_hash'])
-        ) {
+        // Always run one password_verify so response time does not reveal whether the username exists.
+        $passwordMatches = password_verify(
+            $password,
+            $account === false ? '$2y$10$vfeYGNZqThY/CzvaYbV2CuhtN8UllTHhy5R2NNLHPhOfuBiA8mRwm' : $account['password_hash']
+        );
+
+        if ($account === false || !(bool) $account['is_active'] || !$passwordMatches) {
+            login_record_failure($username);
             $errorKey = 'invalid';
         } else {
+            login_clear_failures($username);
             session_regenerate_id(true);
             $_SESSION['user'] = [
                 'id' => (int) $account['id'],
@@ -266,6 +272,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                   echo $language === 'fr' ? 'Saisissez votre nom d’utilisateur et votre mot de passe.' : 'يرجى إدخال اسم المستخدم وكلمة المرور.';
               } elseif ($errorKey === 'invalid') {
                   echo $language === 'fr' ? 'Le nom d’utilisateur ou le mot de passe est incorrect.' : 'اسم المستخدم أو كلمة المرور غير صحيحة.';
+              } elseif ($errorKey === 'locked') {
+                  echo $language === 'fr' ? 'Trop de tentatives échouées. Réessayez dans quelques minutes.' : 'محاولات فاشلة كثيرة. أعد المحاولة بعد بضع دقائق.';
               }
             ?></p>
           </form>
@@ -288,6 +296,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           note: "الدخول مخصّص للعدول والموظفين المخوّلين.",
           required: "يرجى إدخال اسم المستخدم وكلمة المرور.",
           invalid: "اسم المستخدم أو كلمة المرور غير صحيحة.",
+          locked: "محاولات فاشلة كثيرة. أعد المحاولة بعد بضع دقائق.",
           other: "Français",
           titleTag: "أرشيف العدول — تسجيل الدخول"
         },
@@ -304,6 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           note: "Accès réservé aux adouls et au personnel autorisé.",
           required: "Saisissez votre nom d’utilisateur et votre mot de passe.",
           invalid: "Le nom d’utilisateur ou le mot de passe est incorrect.",
+          locked: "Trop de tentatives échouées. Réessayez dans quelques minutes.",
           other: "العربية",
           titleTag: "Archives des adouls — Connexion"
         }

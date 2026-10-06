@@ -2,9 +2,15 @@ Options -Indexes
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteRule ^(app|config|database|includes|scripts)(/|$) - [F,L,NC]
+  RewriteRule ^(app|config|database|includes|scripts|data|archive-private-documents|\.vscode|\.git)(/|$) - [F,L,NC]
 </IfModule>
 
-<FilesMatch "(^README\.md$|\.sql$)">
+<FilesMatch "(^README\.md$|\.sql$|\.sqlite$|^\.git)">
   Require all denied
 </FilesMatch>
+
+<IfModule mod_headers.c>
+  Header always set X-Frame-Options "DENY"
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "same-origin"
+</IfModule>

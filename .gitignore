@@ -1,0 +1,4 @@
+# Local data that must never be committed or served
+/data/
+/archive-private-documents/
+*.sqlite

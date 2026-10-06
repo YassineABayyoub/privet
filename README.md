@@ -8,6 +8,8 @@ Les champs textuels d’un contrat, de ses parties et des biens doivent être re
 
 > **Important :** les fichiers `.html` sont des redirections historiques. Les vraies pages et le traitement des formulaires sont en `.php`. Lance toujours le serveur PHP, et non un serveur de fichiers statiques.
 
+> **Mise à jour sécurité :** applique aussi `database/migrations/003_login_attempts.sql` (limitation des tentatives de connexion). Définis `DOCUMENT_STORAGE_DIR` vers un dossier permanent hors du site, et `DB_USER`/`DB_PASS` pour MySQL. Le repli SQLite n'est plus automatique : il exige `DB_ALLOW_SQLITE=1` (développement uniquement). `SESSION_IDLE_SECONDS` (défaut 7200) règle l'expiration des sessions inactives.
+
 ## Sommaire
 
 1. [Vue d’ensemble en ASCII](#vue-densemble-en-ascii)

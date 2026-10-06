@@ -11,7 +11,7 @@ $params = [];
 if ($q !== '') {
     $where = ' WHERE p.first_name LIKE :first_name OR p.first_name_fr LIKE :first_name_fr
         OR p.last_name LIKE :last_name OR p.last_name_fr LIKE :last_name_fr OR p.identity_number LIKE :identity_number';
-    $pattern = '%' . $q . '%';
+    $pattern = like_pattern($q);
     $params = [
         'first_name' => $pattern,
         'first_name_fr' => $pattern,

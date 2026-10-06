@@ -32,7 +32,16 @@ function database(): PDO
         }
     }
 
-    // Fallback: use SQLite in a local data directory for development/testing.
+    // A configured MySQL server that cannot be reached must be an error: silently switching to a
+    // different (SQLite) database would split the archive across two stores.
+    if ($user !== false && $user !== '') {
+        throw new RuntimeException('Could not connect to MySQL; check DB_HOST, DB_PORT, DB_NAME, DB_USER and DB_PASS.');
+    }
+
+    // The SQLite fallback is development-only (several pages use MySQL-specific SQL) and opt-in.
+    if (getenv('DB_ALLOW_SQLITE') !== '1') {
+        throw new RuntimeException('No database configured: set DB_USER/DB_PASS (MySQL), or DB_ALLOW_SQLITE=1 for development only.');
+    }
     if (!extension_loaded('pdo_sqlite')) {
         throw new RuntimeException('No suitable PDO driver available: pdo_mysql or pdo_sqlite required.');
     }
@@ -111,6 +120,13 @@ function database(): PDO
             file_size INTEGER NOT NULL,
             uploaded_by INTEGER NOT NULL,
             created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );");
+
+        $pdo->exec("CREATE TABLE IF NOT EXISTS login_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username VARCHAR(80) NOT NULL,
+            ip VARCHAR(45) NOT NULL,
+            attempted_at DATETIME NOT NULL
         );");
 
         $pdo->commit();

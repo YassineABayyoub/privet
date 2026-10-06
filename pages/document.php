@@ -37,4 +37,5 @@ header("Content-Disposition: {$disposition}; filename*=UTF-8''{$safeName}");
 header('X-Content-Type-Options: nosniff');
 header('Content-Security-Policy: sandbox');
 header('Cache-Control: private, no-store');
+session_write_close();
 readfile($filePath);

@@ -254,18 +254,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $findPerson->execute(['identity_number' => $person['identity_number']]);
                     $existingPersonId = $findPerson->fetchColumn();
                     if ($existingPersonId !== false) {
+                        // Reuse the existing record as-is. Overwriting its names here would silently
+                        // rewrite that person in every other contract (a typo in the ID number would
+                        // corrupt someone else's record); corrections go through edit-contract (judge only).
                         $personId = (int) $existingPersonId;
-                        $updatePerson = $pdo->prepare(
-                            'UPDATE persons SET first_name = :first_name, first_name_fr = :first_name_fr,
-                                last_name = :last_name, last_name_fr = :last_name_fr WHERE id = :id'
-                        );
-                        $updatePerson->execute([
-                            'first_name' => $person['first_name'],
-                            'first_name_fr' => $person['first_name_fr'],
-                            'last_name' => $person['last_name'],
-                            'last_name_fr' => $person['last_name_fr'],
-                            'id' => $personId,
-                        ]);
                     }
                 }
 

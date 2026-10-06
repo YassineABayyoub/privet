@@ -23,7 +23,7 @@ if ($q !== '') {
           AND (p.first_name LIKE :q_first OR p.first_name_fr LIKE :q_first_fr
             OR p.last_name LIKE :q_last OR p.last_name_fr LIKE :q_last_fr OR p.identity_number LIKE :q_identity)
     ))';
-    $searchPattern = '%' . $q . '%';
+    $searchPattern = like_pattern($q);
     $params['q_number'] = $searchPattern;
     $params['q_number_fr'] = $searchPattern;
     $params['q_reference'] = $searchPattern;

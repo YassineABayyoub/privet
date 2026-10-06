@@ -9,7 +9,7 @@ $categoryRows = $pdo->query(
 )->fetchAll();
 $monthlyRows = $pdo->query(
     'SELECT DATE_FORMAT(contract_date, \'%Y-%m\') AS month, COUNT(*) AS total
-     FROM contracts WHERE contract_date >= DATE_SUB(CURDATE(), INTERVAL 11 MONTH)
+     FROM contracts WHERE contract_date >= DATE_SUB(DATE_FORMAT(CURDATE(), \'%Y-%m-01\'), INTERVAL 11 MONTH)
      GROUP BY DATE_FORMAT(contract_date, \'%Y-%m\') ORDER BY month'
 )->fetchAll();
 $pageTitle = 'التقارير';

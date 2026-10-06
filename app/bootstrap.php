@@ -15,6 +15,11 @@ session_set_cookie_params([
 ]);
 session_start();
 
+header('X-Frame-Options: DENY');
+header("Content-Security-Policy: frame-ancestors 'none'");
+header('X-Content-Type-Options: nosniff');
+header('Referrer-Policy: same-origin');
+
 set_exception_handler(static function (Throwable $exception): void {
     error_log((string) $exception);
     http_response_code(500);
@@ -53,6 +58,14 @@ function bilingual_person_name(?string $firstName, ?string $lastName, ?string $f
         trim(($firstName ?? '') . ' ' . ($lastName ?? '')),
         trim($firstNameFr . ' ' . $lastNameFr)
     );
+}
+
+/**
+ * Builds a LIKE pattern that matches the term literally (escapes %, _ and \).
+ */
+function like_pattern(string $term): string
+{
+    return '%' . strtr($term, ['\\' => '\\\\', '%' => '\\%', '_' => '\\_']) . '%';
 }
 
 function utf8_length(string $value): int
@@ -116,6 +129,15 @@ function require_auth(): array
         redirect('/pages/login.php');
     }
 
+    $idleLimit = (int) (getenv('SESSION_IDLE_SECONDS') ?: 7200);
+    $now = time();
+    if (isset($_SESSION['last_activity']) && $now - (int) $_SESSION['last_activity'] > $idleLimit) {
+        $_SESSION = [];
+        session_destroy();
+        redirect('/pages/login.php');
+    }
+    $_SESSION['last_activity'] = $now;
+
     $_SESSION['user'] = [
         'id' => (int) $account['id'],
         'username' => $account['username'],
@@ -124,6 +146,72 @@ function require_auth(): array
     ];
 
     return $_SESSION['user'];
+}
+
+const LOGIN_MAX_FAILURES_PER_USER = 5;
+const LOGIN_MAX_FAILURES_PER_IP = 30;
+const LOGIN_WINDOW_SECONDS = 900;
+
+function login_throttle_key(string $username): string
+{
+    return mb_substr(mb_strtolower($username, 'UTF-8'), 0, 80, 'UTF-8');
+}
+
+/**
+ * True when too many recent failed logins exist for this username or IP.
+ * Fails open (returns false) if the login_attempts table is missing, so an
+ * installation that has not applied migration 003 yet is not locked out.
+ */
+function login_is_throttled(string $username): bool
+{
+    try {
+        $since = gmdate('Y-m-d H:i:s', time() - LOGIN_WINDOW_SECONDS);
+        $statement = database()->prepare(
+            'SELECT
+                (SELECT COUNT(*) FROM login_attempts WHERE username = :username AND attempted_at >= :since_user) AS by_user,
+                (SELECT COUNT(*) FROM login_attempts WHERE ip = :ip AND attempted_at >= :since_ip) AS by_ip'
+        );
+        $statement->execute([
+            'username' => login_throttle_key($username),
+            'since_user' => $since,
+            'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+            'since_ip' => $since,
+        ]);
+        $counts = $statement->fetch();
+
+        return (int) $counts['by_user'] >= LOGIN_MAX_FAILURES_PER_USER
+            || (int) $counts['by_ip'] >= LOGIN_MAX_FAILURES_PER_IP;
+    } catch (Throwable $exception) {
+        error_log('Login throttling unavailable (apply database/migrations/003_login_attempts.sql): ' . $exception->getMessage());
+        return false;
+    }
+}
+
+function login_record_failure(string $username): void
+{
+    try {
+        $pdo = database();
+        $pdo->prepare('INSERT INTO login_attempts (username, ip, attempted_at) VALUES (:username, :ip, :attempted_at)')
+            ->execute([
+                'username' => login_throttle_key($username),
+                'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+                'attempted_at' => gmdate('Y-m-d H:i:s'),
+            ]);
+        $pdo->prepare('DELETE FROM login_attempts WHERE attempted_at < :cutoff')
+            ->execute(['cutoff' => gmdate('Y-m-d H:i:s', time() - 86400)]);
+    } catch (Throwable $exception) {
+        error_log('Could not record failed login: ' . $exception->getMessage());
+    }
+}
+
+function login_clear_failures(string $username): void
+{
+    try {
+        database()->prepare('DELETE FROM login_attempts WHERE username = :username')
+            ->execute(['username' => login_throttle_key($username)]);
+    } catch (Throwable $exception) {
+        error_log('Could not clear failed logins: ' . $exception->getMessage());
+    }
 }
 
 function require_judge(): array
@@ -400,6 +488,7 @@ function document_storage_directory(): string
     ))) {
         // Prefer an explicit environment override; otherwise use system temp outside the project web root.
         $fallback = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'privet-archive-private-documents';
+        error_log('Document storage resolves inside the web root; using ' . $fallback . ' (temporary files may be purged). Set DOCUMENT_STORAGE_DIR to a permanent directory outside the web root.');
         if (!is_dir($fallback) && !mkdir($fallback, 0700, true) && !is_dir($fallback)) {
             throw new RuntimeException('Could not create the private document directory (fallback).');
         }
