@@ -182,6 +182,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'specific_data_fr' => $specificDataFr,
                 'id' => $contractId,
             ]);
+            $oldPersonQuery = $pdo->prepare('SELECT DISTINCT person_id FROM contract_parties WHERE contract_id = :id');
+            $oldPersonQuery->execute(['id' => $contractId]);
+            $oldPersonIds = $oldPersonQuery->fetchAll(PDO::FETCH_COLUMN);
             $pdo->prepare('DELETE FROM contract_parties WHERE contract_id = :id')->execute(['id' => $contractId]);
             $findPerson = $pdo->prepare('SELECT id FROM persons WHERE identity_number = :identity_number LIMIT 1');
             $insertPerson = $pdo->prepare('INSERT INTO persons (first_name, first_name_fr, last_name, last_name_fr, identity_number) VALUES (:first_name, :first_name_fr, :last_name, :last_name_fr, :identity_number)');
@@ -226,6 +229,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'party_role' => $person['role'],
                     'party_role_fr' => $person['role_fr'],
                 ]);
+            }
+            // Remove people who were removed from this contract and have no other contract.
+            $removeOrphan = $pdo->prepare(
+                'DELETE FROM persons WHERE id = :id
+                 AND NOT EXISTS (SELECT 1 FROM contract_parties WHERE person_id = :person_id)'
+            );
+            foreach ($oldPersonIds as $oldPersonId) {
+                $removeOrphan->execute(['id' => $oldPersonId, 'person_id' => $oldPersonId]);
             }
             $pdo->commit();
             set_flash('success', 'تم تحديث العقد والأطراف.');
