@@ -109,20 +109,26 @@ document.addEventListener('DOMContentLoaded', () => {
           <button type="button" class="action-btn danger remove-person">حذف</button>
         </div>
         <div class="person-grid">
-          <div class="field">
-            <label>الدور</label>
-            <input type="text" name="personnes[${index}][role]" maxlength="100" />
+          <div class="field bilingual-field">
+            <label>الدور — العربية</label>
+            <input type="text" name="personnes[${index}][role]" maxlength="100" required />
+            <label>Rôle — Français</label>
+            <input type="text" name="personnes[${index}][role_fr]" maxlength="100" required />
+          </div>
+          <div class="field bilingual-field">
+            <label>الاسم — العربية</label>
+            <input type="text" name="personnes[${index}][nom]" maxlength="120" required />
+            <label>Prénom — Français</label>
+            <input type="text" name="personnes[${index}][nom_fr]" maxlength="120" required />
+          </div>
+          <div class="field bilingual-field">
+            <label>النسب — العربية</label>
+            <input type="text" name="personnes[${index}][prenom]" maxlength="160" required />
+            <label>Nom de famille — Français</label>
+            <input type="text" name="personnes[${index}][prenom_fr]" maxlength="160" required />
           </div>
           <div class="field">
-            <label>الاسم</label>
-            <input type="text" name="personnes[${index}][nom]" maxlength="120" placeholder="اسم الشخص" />
-          </div>
-          <div class="field">
-            <label>النسب</label>
-            <input type="text" name="personnes[${index}][prenom]" maxlength="160" placeholder="النسب" />
-          </div>
-          <div class="field">
-            <label>رقم البطاقة</label>
+            <label>رقم البطاقة / Numéro de pièce d’identité</label>
             <input type="text" name="personnes[${index}][cin]" maxlength="80" placeholder="0000000" />
           </div>
         </div>
@@ -152,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const currentBlocks = Array.from(personsContainer.querySelectorAll('.person-block'));
       currentBlocks.forEach((block, index) => {
         const roleInput = block.querySelector('[name$="[role]"]');
+        const roleFrenchInput = block.querySelector('[name$="[role_fr]"]');
         const firstNameInput = block.querySelector('[name$="[nom]"]');
         const lastNameInput = block.querySelector('[name$="[prenom]"]');
         const title = block.querySelector('.person-block-header h4');
@@ -159,12 +166,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (marriagePartyForm) {
           const role = index === 0 ? 'الزوج' : index === 1 ? 'الزوجة' : 'شاهد';
+          const roleFrench = index === 0 ? 'Époux' : index === 1 ? 'Épouse' : 'Témoin';
           if (index >= 2) {
             block.dataset.marriageCreated = 'true';
           }
           roleInput.value = role;
+          roleFrenchInput.value = roleFrench;
           roleInput.dataset.marriageRole = role;
           roleInput.readOnly = true;
+          roleFrenchInput.readOnly = true;
           title.textContent = index < 2 ? role : `الشاهد ${index - 1}`;
           firstNameInput.required = true;
           lastNameInput.required = true;
@@ -172,12 +182,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           if (roleInput.dataset.marriageRole === roleInput.value) {
             roleInput.value = '';
+            roleFrenchInput.value = '';
           }
           delete roleInput.dataset.marriageRole;
           roleInput.readOnly = false;
+          roleFrenchInput.readOnly = false;
           title.textContent = `الشخص ${index + 1}`;
-          firstNameInput.required = false;
-          lastNameInput.required = false;
           removeButton.hidden = false;
         }
       });
@@ -213,31 +223,31 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   const propertyConfig = {
     'سيارة': {
-      make_model: 'العلامة والطراز',
-      registration: 'رقم التسجيل',
-      chassis: 'رقم الهيكل',
-      color: 'اللون'
+      make_model: ['العلامة والطراز', 'Marque et modèle'],
+      registration: ['رقم التسجيل', 'Numéro d’immatriculation'],
+      chassis: ['رقم الهيكل', 'Numéro de châssis'],
+      color: ['اللون', 'Couleur']
     },
     'بقعة أرضية': {
-      area: 'المساحة',
-      location: 'الموقع',
-      parcel_reference: 'رقم الرسم أو القطعة',
-      boundaries: 'الحدود'
+      area: ['المساحة', 'Superficie'],
+      location: ['الموقع', 'Emplacement'],
+      parcel_reference: ['رقم الرسم أو القطعة', 'Numéro du titre ou de la parcelle'],
+      boundaries: ['الحدود', 'Limites']
     },
     'منزل': {
-      address: 'العنوان أو الموقع',
-      area: 'المساحة',
-      floors: 'عدد الطوابق',
-      title_reference: 'مرجع الملكية'
+      address: ['العنوان أو الموقع', 'Adresse ou emplacement'],
+      area: ['المساحة', 'Superficie'],
+      floors: ['عدد الطوابق', 'Nombre d’étages'],
+      title_reference: ['مرجع الملكية', 'Référence de propriété']
     },
     'محل تجاري': {
-      location: 'الموقع',
-      area: 'المساحة',
-      title_reference: 'مرجع الملكية',
-      commercial_activity: 'النشاط التجاري'
+      location: ['الموقع', 'Emplacement'],
+      area: ['المساحة', 'Superficie'],
+      title_reference: ['مرجع الملكية', 'Référence de propriété'],
+      commercial_activity: ['النشاط التجاري', 'Activité commerciale']
     },
     'أخرى': {
-      description: 'الوصف'
+      description: ['الوصف', 'Description']
     }
   };
   const propertiesContainer = document.querySelector('#propertiesContainer');
@@ -257,25 +267,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const labelField = document.createElement('div');
       labelField.className = 'field';
-      const label = document.createElement('label');
-      label.textContent = 'اسم الخاصية';
-      const labelInput = document.createElement('input');
-      labelInput.type = 'text';
-      labelInput.maxLength = 80;
-      labelInput.name = `properties[${card.dataset.index}][custom_characteristics][${index}][label]`;
-      labelInput.value = entry.label || '';
-      labelField.append(label, labelInput);
+      const labelAr = document.createElement('label');
+      labelAr.textContent = 'اسم الخاصية — العربية';
+      const labelInputAr = document.createElement('input');
+      labelInputAr.type = 'text';
+      labelInputAr.maxLength = 80;
+      labelInputAr.required = true;
+      labelInputAr.name = `properties[${card.dataset.index}][custom_characteristics][${index}][label][ar]`;
+      labelInputAr.value = entry.label?.ar || '';
+      const labelFr = document.createElement('label');
+      labelFr.textContent = 'Nom de la caractéristique — Français';
+      const labelInputFr = document.createElement('input');
+      labelInputFr.type = 'text';
+      labelInputFr.maxLength = 80;
+      labelInputFr.required = true;
+      labelInputFr.name = `properties[${card.dataset.index}][custom_characteristics][${index}][label][fr]`;
+      labelInputFr.value = entry.label?.fr || '';
+      labelField.append(labelAr, labelInputAr, labelFr, labelInputFr);
 
       const valueField = document.createElement('div');
       valueField.className = 'field';
-      const valueLabel = document.createElement('label');
-      valueLabel.textContent = 'القيمة';
-      const valueInput = document.createElement('input');
-      valueInput.type = 'text';
-      valueInput.maxLength = 2000;
-      valueInput.name = `properties[${card.dataset.index}][custom_characteristics][${index}][value]`;
-      valueInput.value = entry.value || '';
-      valueField.append(valueLabel, valueInput);
+      const valueLabelAr = document.createElement('label');
+      valueLabelAr.textContent = 'القيمة — العربية';
+      const valueInputAr = document.createElement('input');
+      valueInputAr.type = 'text';
+      valueInputAr.maxLength = 2000;
+      valueInputAr.required = true;
+      valueInputAr.name = `properties[${card.dataset.index}][custom_characteristics][${index}][value][ar]`;
+      valueInputAr.value = entry.value?.ar || '';
+      const valueLabelFr = document.createElement('label');
+      valueLabelFr.textContent = 'Valeur — Français';
+      const valueInputFr = document.createElement('input');
+      valueInputFr.type = 'text';
+      valueInputFr.maxLength = 2000;
+      valueInputFr.required = true;
+      valueInputFr.name = `properties[${card.dataset.index}][custom_characteristics][${index}][value][fr]`;
+      valueInputFr.value = entry.value?.fr || '';
+      valueField.append(valueLabelAr, valueInputAr, valueLabelFr, valueInputFr);
 
       const removeField = document.createElement('div');
       removeField.className = 'field';
@@ -293,17 +321,26 @@ document.addEventListener('DOMContentLoaded', () => {
       const fields = card.querySelector('[data-property-characteristics]');
       fields.replaceChildren();
       const type = card.querySelector('[data-property-type]').value;
-      Object.entries(propertyConfig[type] || {}).forEach(([key, label]) => {
+      Object.entries(propertyConfig[type] || {}).forEach(([key, labels]) => {
         const wrapper = document.createElement('div');
-        wrapper.className = 'field';
-        const fieldLabel = document.createElement('label');
-        fieldLabel.textContent = label;
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.name = `properties[${card.dataset.index}][characteristics][${key}]`;
-        input.maxLength = 2000;
-        input.value = property.characteristics?.[key] || '';
-        wrapper.append(fieldLabel, input);
+        wrapper.className = 'field bilingual-field';
+        const labelAr = document.createElement('label');
+        labelAr.textContent = `${labels[0]} — العربية`;
+        const inputAr = document.createElement('input');
+        inputAr.type = 'text';
+        inputAr.name = `properties[${card.dataset.index}][characteristics][${key}][ar]`;
+        inputAr.maxLength = 2000;
+        inputAr.required = true;
+        inputAr.value = property.characteristics?.[key]?.ar || '';
+        const labelFr = document.createElement('label');
+        labelFr.textContent = `${labels[1]} — Français`;
+        const inputFr = document.createElement('input');
+        inputFr.type = 'text';
+        inputFr.name = `properties[${card.dataset.index}][characteristics][${key}][fr]`;
+        inputFr.maxLength = 2000;
+        inputFr.required = true;
+        inputFr.value = property.characteristics?.[key]?.fr || '';
+        wrapper.append(labelAr, inputAr, labelFr, inputFr);
         fields.appendChild(wrapper);
       });
 
@@ -343,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const typeSelect = document.createElement('select');
       typeSelect.dataset.propertyType = '';
       typeSelect.name = `properties[${index}][type]`;
-      typeSelect.required = true;
+      typeSelect.required = false;
       const placeholder = document.createElement('option');
       placeholder.value = '';
       placeholder.textContent = 'اختر نوع الملك';

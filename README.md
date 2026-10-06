@@ -1,6 +1,10 @@
 # Arshif — archive local des actes et contrats
 
-Application web locale en PHP 8 et MySQL/MariaDB pour enregistrer, rechercher et consulter des contrats et leurs documents. L’interface est en arabe et en RTL; les explications techniques de ce guide sont en français.
+Application web locale en PHP 8 et MySQL/MariaDB pour enregistrer, rechercher et consulter des contrats et leurs documents. L’interface peut être affichée en arabe (RTL) ou en français; le sélecteur de langue est disponible sur les pages de connexion et dans la barre supérieure.
+
+Le choix de langue est mémorisé dans le navigateur. Les libellés de l’interface sont traduits; les noms, notes et documents saisis par les utilisateurs restent dans leur langue d’origine.
+
+Les champs textuels d’un contrat, de ses parties et des biens doivent être renseignés en arabe et en français. Pour une base déjà installée, sauvegarde-la puis applique `database/migrations/002_bilingual_contract_text.sql` avant d’utiliser les formulaires de contrat. Les anciennes données restent consultables; les traductions manquantes s’affichent en arabe jusqu’à ce qu’un responsable complète le contrat.
 
 > **Important :** les fichiers `.html` sont des redirections historiques. Les vraies pages et le traitement des formulaires sont en `.php`. Lance toujours le serveur PHP, et non un serveur de fichiers statiques.
 
@@ -123,6 +127,7 @@ privet/
 |   |-- tables.css                Tableaux et listes
 |   `-- responsive.css            Adaptation aux petits écrans
 |-- js/
+|   |-- i18n.js                   Sélecteur de langue arabe/français et libellés d'interface
 |   |-- main.js                   Comportements communs et formulaires dynamiques
 |   |-- navigation.js             Navigation
 |   |-- contracts.js              Filtres interactifs historiques de la liste

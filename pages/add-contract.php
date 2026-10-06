@@ -10,31 +10,44 @@ $errors = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verify_csrf();
 
-    $number = trim((string) ($_POST['numero'] ?? ''));
-    $contractDate = trim((string) ($_POST['date'] ?? ''));
-    $registeredDate = trim((string) ($_POST['date_enregistrement'] ?? ''));
-    $category = trim((string) ($_POST['categorie'] ?? ''));
-    $actType = trim((string) ($_POST['type_acte'] ?? ''));
-    $archiveNumber = trim((string) ($_POST['numero_archive'] ?? ''));
-    $reference = trim((string) ($_POST['reference'] ?? ''));
-    $notes = trim((string) ($_POST['notes'] ?? ''));
-    $specificNotes = trim((string) ($_POST['specific_notes'] ?? ''));
-    [$properties, $propertyErrors] = normalize_contract_properties($_POST['properties'] ?? []);
+    $number = request_text($_POST['numero'] ?? null);
+    $numberFr = request_text($_POST['numero_fr'] ?? null);
+    $contractDate = request_text($_POST['date'] ?? null);
+    $registeredDate = request_text($_POST['date_enregistrement'] ?? null);
+    $category = request_text($_POST['categorie'] ?? null);
+    $actType = request_text($_POST['type_acte'] ?? null);
+    $archiveNumber = request_text($_POST['numero_archive'] ?? null);
+    $archiveNumberFr = request_text($_POST['numero_archive_fr'] ?? null);
+    $reference = request_text($_POST['reference'] ?? null);
+    $referenceFr = request_text($_POST['reference_fr'] ?? null);
+    $notes = request_text($_POST['notes'] ?? null);
+    $notesFr = request_text($_POST['notes_fr'] ?? null);
+    $specificNotes = request_text($_POST['specific_notes'] ?? null);
+    $specificNotesFr = request_text($_POST['specific_notes_fr'] ?? null);
+    [$properties, $propertiesFr, $propertyErrors] = normalize_contract_properties($_POST['properties'] ?? []);
     if ($category !== 'الأملاك') {
         $properties = [];
+        $propertiesFr = [];
         $propertyErrors = [];
     }
     $errors = array_merge($errors, $propertyErrors);
     $submittedPeople = $_POST['personnes'] ?? [];
     $people = [];
 
-    if ($number === '' || utf8_length($number) > 80) {
-        $errors[] = 'رقم العقد مطلوب ويجب ألا يتجاوز 80 حرفاً.';
+    if ($number === '' || $numberFr === '' || utf8_length($number) > 80 || utf8_length($numberFr) > 80) {
+        $errors[] = 'رقم العقد مطلوب بالعربية والفرنسية ولا يتجاوز 80 حرفاً.';
     }
-    if (utf8_length($archiveNumber) > 100 || utf8_length($reference) > 255) {
+    if ($archiveNumber === '' || $archiveNumberFr === '' || $reference === '' || $referenceFr === '') {
+        $errors[] = 'أدخل رقم الأرشيف والمرجع بالعربية والفرنسية.';
+    } elseif (utf8_length($archiveNumber) > 100 || utf8_length($archiveNumberFr) > 100
+        || utf8_length($reference) > 255 || utf8_length($referenceFr) > 255) {
         $errors[] = 'رقم الأرشيف أو المرجع يتجاوز الحد المسموح.';
     }
-    if (strlen($notes) > 60000 || strlen($specificNotes) > 60000) {
+    if ($notes === '' || $notesFr === '' || $specificNotes === '' || $specificNotesFr === '') {
+        $errors[] = 'أدخل الملاحظات بالعربية والفرنسية.';
+    }
+    if (strlen($notes) > 60000 || strlen($notesFr) > 60000
+        || strlen($specificNotes) > 60000 || strlen($specificNotesFr) > 60000) {
         $errors[] = 'النص المدخل طويل جداً.';
     }
     if (!isset($categories[$category]) || !in_array($actType, $categories[$category] ?? [], true)) {
@@ -55,28 +68,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 continue;
             }
 
-            $firstName = trim((string) ($person['nom'] ?? ''));
-            $lastName = trim((string) ($person['prenom'] ?? ''));
-            $identityNumber = trim((string) ($person['cin'] ?? ''));
-            $partyRole = trim((string) ($person['role'] ?? ''));
+            $firstName = request_text($person['nom'] ?? null);
+            $firstNameFr = request_text($person['nom_fr'] ?? null);
+            $lastName = request_text($person['prenom'] ?? null);
+            $lastNameFr = request_text($person['prenom_fr'] ?? null);
+            $identityNumber = request_text($person['cin'] ?? null);
+            $partyRole = request_text($person['role'] ?? null);
+            $partyRoleFr = request_text($person['role_fr'] ?? null);
 
-            if ($firstName === '' && $lastName === '' && $identityNumber === '' && $partyRole === '') {
+            if ($firstName === '' && $firstNameFr === '' && $lastName === '' && $lastNameFr === '' && $identityNumber === '' && $partyRole === '' && $partyRoleFr === '') {
                 continue;
             }
-            if ($firstName === '' || $lastName === '' || $partyRole === '') {
-                $errors[] = 'لكل طرف تمت إضافته، أدخل الاسم والنسب والدور.';
+            if ($firstName === '' || $firstNameFr === '' || $lastName === '' || $lastNameFr === '' || $partyRole === '' || $partyRoleFr === '') {
+                $errors[] = 'أدخل الاسم والنسب والدور لكل طرف بالعربية والفرنسية.';
                 continue;
             }
-            if (utf8_length($firstName) > 120 || utf8_length($lastName) > 160 || utf8_length($identityNumber) > 80 || utf8_length($partyRole) > 100) {
+            if (utf8_length($firstName) > 120 || utf8_length($firstNameFr) > 120
+                || utf8_length($lastName) > 160 || utf8_length($lastNameFr) > 160
+                || utf8_length($identityNumber) > 80 || utf8_length($partyRole) > 100 || utf8_length($partyRoleFr) > 100) {
                 $errors[] = 'بيانات أحد الأطراف تتجاوز الحد المسموح.';
                 continue;
             }
 
             $people[] = [
                 'first_name' => $firstName,
+                'first_name_fr' => $firstNameFr,
                 'last_name' => $lastName,
+                'last_name_fr' => $lastNameFr,
                 'identity_number' => $identityNumber,
                 'party_role' => $partyRole,
+                'party_role_fr' => $partyRoleFr,
             ];
         }
     } else {
@@ -102,10 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $documents = [];
     $upload = $_FILES['documents'] ?? null;
     if (is_array($upload) && is_array($upload['name'] ?? null)) {
-        if (!class_exists(\finfo::class)) {
-            throw new RuntimeException('The PHP fileinfo extension is required for document uploads.');
-        }
-        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $finfo = null;
         $allowedMimeTypes = [
             'application/pdf' => 'pdf',
             'image/jpeg' => 'jpg',
@@ -123,6 +141,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($uploadError !== UPLOAD_ERR_OK) {
                 $errors[] = 'تعذر استلام أحد الملفات. تحقق من حدود رفع الملفات في PHP.';
                 continue;
+            }
+            if (!class_exists(\finfo::class)) {
+                $errors[] = 'تعذر التحقق من نوع الملف. يجب تفعيل امتداد PHP fileinfo لرفع الوثائق.';
+                break;
+            }
+            if ($finfo === null) {
+                $finfo = new finfo(FILEINFO_MIME_TYPE);
             }
             $temporaryPath = (string) ($upload['tmp_name'][$index] ?? '');
             $originalName = basename((string) ($upload['name'][$index] ?? ''));
@@ -159,13 +184,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($properties !== []) {
             $specificPayload['الأملاك'] = $properties;
         }
-        if ($specificNotes !== '') {
-            $specificPayload['ملاحظات إضافية'] = $specificNotes;
+        $specificPayloadFr = [];
+        if ($propertiesFr !== []) {
+            $specificPayloadFr['الأملاك'] = $propertiesFr;
         }
+        $specificPayload['ملاحظات إضافية'] = $specificNotes;
+        $specificPayloadFr['ملاحظات إضافية'] = $specificNotesFr;
         $specificData = $specificPayload === [] ? null : json_encode(
             $specificPayload,
             JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
         );
+        $specificDataFr = json_encode($specificPayloadFr, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
         try {
             if ($documents !== []) {
@@ -183,30 +212,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->beginTransaction();
             $insertContract = $pdo->prepare(
                 'INSERT INTO contracts
-                  (contract_number, contract_date, registered_date, category, act_type, archive_number, reference_text, notes, specific_data, created_by)
+                  (contract_number, contract_number_fr, contract_date, registered_date, category, act_type, archive_number, archive_number_fr, reference_text, reference_text_fr, notes, notes_fr, specific_data, specific_data_fr, created_by)
                  VALUES
-                  (:contract_number, :contract_date, :registered_date, :category, :act_type, :archive_number, :reference_text, :notes, :specific_data, :created_by)'
+                  (:contract_number, :contract_number_fr, :contract_date, :registered_date, :category, :act_type, :archive_number, :archive_number_fr, :reference_text, :reference_text_fr, :notes, :notes_fr, :specific_data, :specific_data_fr, :created_by)'
             );
             $insertContract->execute([
                 'contract_number' => $number,
+                'contract_number_fr' => $numberFr,
                 'contract_date' => $contractDate,
                 'registered_date' => $registeredDate === '' ? null : $registeredDate,
                 'category' => $category,
                 'act_type' => $actType,
-                'archive_number' => $archiveNumber === '' ? null : $archiveNumber,
-                'reference_text' => $reference === '' ? null : $reference,
-                'notes' => $notes === '' ? null : $notes,
+                'archive_number' => $archiveNumber,
+                'archive_number_fr' => $archiveNumberFr,
+                'reference_text' => $reference,
+                'reference_text_fr' => $referenceFr,
+                'notes' => $notes,
+                'notes_fr' => $notesFr,
                 'specific_data' => $specificData,
+                'specific_data_fr' => $specificDataFr,
                 'created_by' => $user['id'],
             ]);
             $contractId = (int) $pdo->lastInsertId();
 
             $findPerson = $pdo->prepare('SELECT id FROM persons WHERE identity_number = :identity_number LIMIT 1');
             $insertPerson = $pdo->prepare(
-                'INSERT INTO persons (first_name, last_name, identity_number) VALUES (:first_name, :last_name, :identity_number)'
+                'INSERT INTO persons (first_name, first_name_fr, last_name, last_name_fr, identity_number) VALUES (:first_name, :first_name_fr, :last_name, :last_name_fr, :identity_number)'
             );
             $insertParty = $pdo->prepare(
-                'INSERT INTO contract_parties (contract_id, person_id, party_role) VALUES (:contract_id, :person_id, :party_role)'
+                'INSERT INTO contract_parties (contract_id, person_id, party_role, party_role_fr) VALUES (:contract_id, :person_id, :party_role, :party_role_fr)'
             );
             $insertDocument = $pdo->prepare(
                 'INSERT INTO contract_documents (contract_id, original_name, stored_name, mime_type, file_size, uploaded_by)
@@ -221,13 +255,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $existingPersonId = $findPerson->fetchColumn();
                     if ($existingPersonId !== false) {
                         $personId = (int) $existingPersonId;
+                        $updatePerson = $pdo->prepare(
+                            'UPDATE persons SET first_name = :first_name, first_name_fr = :first_name_fr,
+                                last_name = :last_name, last_name_fr = :last_name_fr WHERE id = :id'
+                        );
+                        $updatePerson->execute([
+                            'first_name' => $person['first_name'],
+                            'first_name_fr' => $person['first_name_fr'],
+                            'last_name' => $person['last_name'],
+                            'last_name_fr' => $person['last_name_fr'],
+                            'id' => $personId,
+                        ]);
                     }
                 }
 
                 if ($personId === null) {
                     $insertPerson->execute([
                         'first_name' => $person['first_name'],
+                        'first_name_fr' => $person['first_name_fr'],
                         'last_name' => $person['last_name'],
+                        'last_name_fr' => $person['last_name_fr'],
                         'identity_number' => $person['identity_number'] === '' ? null : $person['identity_number'],
                     ]);
                     $personId = (int) $pdo->lastInsertId();
@@ -242,6 +289,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'contract_id' => $contractId,
                     'person_id' => $personId,
                     'party_role' => $person['party_role'],
+                    'party_role_fr' => $person['party_role_fr'],
                 ]);
             }
 
@@ -288,11 +336,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $old = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : [];
-$selectedCategory = (string) ($old['categorie'] ?? 'الأملاك');
-$selectedType = (string) ($old['type_acte'] ?? '');
-$formPeople = $old['personnes'] ?? [['role' => '', 'nom' => '', 'prenom' => '', 'cin' => '']];
+$selectedCategory = request_text($old['categorie'] ?? null) ?: 'الأملاك';
+$selectedType = request_text($old['type_acte'] ?? null);
+$formPeople = $old['personnes'] ?? [['role' => '', 'role_fr' => '', 'nom' => '', 'nom_fr' => '', 'prenom' => '', 'prenom_fr' => '', 'cin' => '']];
 if (!is_array($formPeople) || $formPeople === []) {
-    $formPeople = [['role' => '', 'nom' => '', 'prenom' => '', 'cin' => '']];
+    $formPeople = [['role' => '', 'role_fr' => '', 'nom' => '', 'nom_fr' => '', 'prenom' => '', 'prenom_fr' => '', 'cin' => '']];
 }
 $formProperties = $old['properties'] ?? [];
 if (!is_array($formProperties)) {
@@ -331,12 +379,12 @@ require __DIR__ . '/../includes/layout-start.php';
   <section class="form-section">
     <h3>معلومات العقد</h3>
     <div class="form-grid">
-      <div class="field"><label for="numero">رقم العقد</label><input id="numero" type="text" name="numero" value="<?= e((string) ($old['numero'] ?? '')) ?>" maxlength="80" required /></div>
-      <div class="field"><label for="date">تاريخ العقد</label><input id="date" type="date" name="date" value="<?= e((string) ($old['date'] ?? '')) ?>" required /></div>
-      <div class="field"><label for="dateEnregistrement">تاريخ التسجيل</label><input id="dateEnregistrement" type="date" name="date_enregistrement" value="<?= e((string) ($old['date_enregistrement'] ?? '')) ?>" /></div>
-      <div class="field"><label for="numeroArchive">رقم الأرشيف</label><input id="numeroArchive" type="text" name="numero_archive" value="<?= e((string) ($old['numero_archive'] ?? '')) ?>" maxlength="100" /></div>
-      <div class="field"><label for="reference">المرجع</label><input id="reference" type="text" name="reference" value="<?= e((string) ($old['reference'] ?? '')) ?>" maxlength="255" /></div>
-      <div class="field full"><label for="notes">ملاحظات عامة (اختياري)</label><textarea id="notes" name="notes"><?= e((string) ($old['notes'] ?? '')) ?></textarea></div>
+      <div class="field bilingual-field"><label for="numero">رقم العقد — العربية</label><input id="numero" type="text" name="numero" dir="auto" value="<?= e(request_text($old['numero'] ?? null)) ?>" maxlength="80" required /><label for="numeroFr">Numéro du contrat — Français</label><input id="numeroFr" type="text" name="numero_fr" dir="auto" value="<?= e(request_text($old['numero_fr'] ?? null)) ?>" maxlength="80" required /></div>
+      <div class="field"><label for="date">تاريخ العقد</label><input id="date" type="date" name="date" value="<?= e(request_text($old['date'] ?? null)) ?>" required /></div>
+      <div class="field"><label for="dateEnregistrement">تاريخ التسجيل</label><input id="dateEnregistrement" type="date" name="date_enregistrement" value="<?= e(request_text($old['date_enregistrement'] ?? null)) ?>" /></div>
+      <div class="field bilingual-field"><label for="numeroArchive">رقم الأرشيف — العربية</label><input id="numeroArchive" type="text" name="numero_archive" dir="auto" value="<?= e(request_text($old['numero_archive'] ?? null)) ?>" maxlength="100" required /><label for="numeroArchiveFr">Numéro d’archive — Français</label><input id="numeroArchiveFr" type="text" name="numero_archive_fr" dir="auto" value="<?= e(request_text($old['numero_archive_fr'] ?? null)) ?>" maxlength="100" required /></div>
+      <div class="field bilingual-field"><label for="reference">المرجع — العربية</label><input id="reference" type="text" name="reference" dir="auto" value="<?= e(request_text($old['reference'] ?? null)) ?>" maxlength="255" required /><label for="referenceFr">Référence — Français</label><input id="referenceFr" type="text" name="reference_fr" dir="auto" value="<?= e(request_text($old['reference_fr'] ?? null)) ?>" maxlength="255" required /></div>
+      <div class="field full bilingual-field"><label for="notes">ملاحظات عامة — العربية</label><textarea id="notes" name="notes" dir="auto" required><?= e(request_text($old['notes'] ?? null)) ?></textarea><label for="notesFr">Notes générales — Français</label><textarea id="notesFr" name="notes_fr" dir="auto" required><?= e(request_text($old['notes_fr'] ?? null)) ?></textarea></div>
     </div>
   </section>
 
@@ -349,10 +397,10 @@ require __DIR__ . '/../includes/layout-start.php';
         <div class="person-block">
           <div class="person-block-header"><h4>الشخص <?= $index + 1 ?></h4><button type="button" class="action-btn danger remove-person">حذف</button></div>
           <div class="person-grid">
-            <div class="field"><label>الدور</label><input type="text" name="personnes[<?= $index ?>][role]" maxlength="100" value="<?= e((string) ($person['role'] ?? '')) ?>" placeholder="مثال: الطرف" /></div>
-            <div class="field"><label>الاسم</label><input type="text" name="personnes[<?= $index ?>][nom]" maxlength="120" value="<?= e((string) ($person['nom'] ?? '')) ?>" /></div>
-            <div class="field"><label>النسب</label><input type="text" name="personnes[<?= $index ?>][prenom]" maxlength="160" value="<?= e((string) ($person['prenom'] ?? '')) ?>" /></div>
-            <div class="field"><label>رقم البطاقة (اختياري)</label><input type="text" name="personnes[<?= $index ?>][cin]" maxlength="80" value="<?= e((string) ($person['cin'] ?? '')) ?>" /></div>
+            <div class="field bilingual-field"><label>الدور — العربية</label><input type="text" name="personnes[<?= $index ?>][role]" dir="auto" maxlength="100" value="<?= e(request_text($person['role'] ?? null)) ?>" required /><label>Rôle — Français</label><input type="text" name="personnes[<?= $index ?>][role_fr]" dir="auto" maxlength="100" value="<?= e(request_text($person['role_fr'] ?? null)) ?>" required /></div>
+            <div class="field bilingual-field"><label>الاسم — العربية</label><input type="text" name="personnes[<?= $index ?>][nom]" dir="auto" maxlength="120" value="<?= e(request_text($person['nom'] ?? null)) ?>" required /><label>Prénom — Français</label><input type="text" name="personnes[<?= $index ?>][nom_fr]" dir="auto" maxlength="120" value="<?= e(request_text($person['nom_fr'] ?? null)) ?>" required /></div>
+            <div class="field bilingual-field"><label>النسب — العربية</label><input type="text" name="personnes[<?= $index ?>][prenom]" dir="auto" maxlength="160" value="<?= e(request_text($person['prenom'] ?? null)) ?>" required /><label>Nom de famille — Français</label><input type="text" name="personnes[<?= $index ?>][prenom_fr]" dir="auto" maxlength="160" value="<?= e(request_text($person['prenom_fr'] ?? null)) ?>" required /></div>
+            <div class="field"><label>رقم البطاقة (اختياري) — Numéro de pièce d’identité (facultatif)</label><input type="text" name="personnes[<?= $index ?>][cin]" dir="auto" maxlength="80" value="<?= e(request_text($person['cin'] ?? null)) ?>" /></div>
           </div>
         </div>
       <?php endforeach; ?>
@@ -370,8 +418,10 @@ require __DIR__ . '/../includes/layout-start.php';
   </section>
   <section class="form-section">
     <div class="field full" style="margin-top:1rem">
-      <label for="specificNotes">ملاحظات إضافية (اختياري)</label>
-      <textarea id="specificNotes" name="specific_notes" placeholder="معلومات عامة إضافية، دون افتراض حقول قانونية غير معتمدة."><?= e((string) ($old['specific_notes'] ?? '')) ?></textarea>
+      <label for="specificNotes">ملاحظات إضافية — العربية</label>
+      <textarea id="specificNotes" name="specific_notes" dir="auto" required><?= e(request_text($old['specific_notes'] ?? null)) ?></textarea>
+      <label for="specificNotesFr">Notes supplémentaires — Français</label>
+      <textarea id="specificNotesFr" name="specific_notes_fr" dir="auto" required><?= e(request_text($old['specific_notes_fr'] ?? null)) ?></textarea>
     </div>
   </section>
 

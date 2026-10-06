@@ -35,6 +35,7 @@ body[data-role="clerk"] {
 }
 
 * { box-sizing: border-box; }
+[data-bilingual-value] { white-space: pre-line; }
 html { scroll-behavior: smooth; }
 body {
   margin: 0;

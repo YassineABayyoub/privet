@@ -204,3 +204,11 @@
   .quick-search { grid-template-columns: 1fr; }
   .dashboard-row, .two-col { grid-template-columns: 1fr; }
 }
+.bilingual-field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.bilingual-field label:not(:first-child) {
+  margin-top: 0.45rem;
+}

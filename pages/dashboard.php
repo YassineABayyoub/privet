@@ -20,7 +20,7 @@ $userCount = $user['role'] === 'judge'
     ? (int) $pdo->query('SELECT COUNT(*) FROM users WHERE is_active = 1')->fetchColumn()
     : null;
 $recentStatement = $pdo->query(
-    'SELECT id, contract_number, category, act_type, contract_date
+    'SELECT id, contract_number, contract_number_fr, category, act_type, contract_date
      FROM contracts ORDER BY created_at DESC, id DESC LIMIT 5'
 );
 $recentContracts = $recentStatement->fetchAll();
@@ -84,7 +84,7 @@ require __DIR__ . '/../includes/layout-start.php';
           <tbody>
             <?php foreach ($recentContracts as $contract): ?>
               <tr>
-                <td><?= e($contract['contract_number']) ?></td><td><?= e($contract['act_type']) ?></td><td><?= e($contract['category']) ?></td>
+                <td><?= bilingual_value($contract['contract_number'], $contract['contract_number_fr']) ?></td><td><?= e($contract['act_type']) ?></td><td><?= e($contract['category']) ?></td>
                 <td><?= e($contract['contract_date']) ?></td><td><a class="action-btn primary" href="/pages/contract-details.php?id=<?= (int) $contract['id'] ?>">عرض</a></td>
               </tr>
             <?php endforeach; ?>

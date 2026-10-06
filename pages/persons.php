@@ -9,9 +9,16 @@ $perPage = 20;
 $where = '';
 $params = [];
 if ($q !== '') {
-    $where = ' WHERE p.first_name LIKE :first_name OR p.last_name LIKE :last_name OR p.identity_number LIKE :identity_number';
+    $where = ' WHERE p.first_name LIKE :first_name OR p.first_name_fr LIKE :first_name_fr
+        OR p.last_name LIKE :last_name OR p.last_name_fr LIKE :last_name_fr OR p.identity_number LIKE :identity_number';
     $pattern = '%' . $q . '%';
-    $params = ['first_name' => $pattern, 'last_name' => $pattern, 'identity_number' => $pattern];
+    $params = [
+        'first_name' => $pattern,
+        'first_name_fr' => $pattern,
+        'last_name' => $pattern,
+        'last_name_fr' => $pattern,
+        'identity_number' => $pattern,
+    ];
 }
 
 $count = database()->prepare('SELECT COUNT(*) FROM persons p' . $where);
@@ -21,7 +28,8 @@ $pages = max(1, (int) ceil($total / $perPage));
 $page = min($page, $pages);
 $offset = ($page - 1) * $perPage;
 $query = database()->prepare(
-    'SELECT p.id, p.first_name, p.last_name, p.identity_number, COUNT(DISTINCT cp.contract_id) AS contract_count
+    'SELECT p.id, p.first_name, p.first_name_fr, p.last_name, p.last_name_fr,
+            p.identity_number, COUNT(DISTINCT cp.contract_id) AS contract_count
      FROM persons p LEFT JOIN contract_parties cp ON cp.person_id = p.id' . $where . '
      GROUP BY p.id ORDER BY p.last_name, p.first_name LIMIT :limit OFFSET :offset'
 );
@@ -43,7 +51,7 @@ require __DIR__ . '/../includes/layout-start.php';
   <div class="panel-body">
   <?php if ($persons === []): ?><div class="empty-state">لا توجد بيانات أشخاص<?= $q !== '' ? ' مطابقة للبحث' : '' ?>.</div><?php else: ?>
     <div class="table-wrap"><table class="data-table"><thead><tr><th>الاسم</th><th>النسب</th><th>رقم البطاقة</th><th>العقود المرتبطة</th><th>الإجراء</th></tr></thead><tbody>
-    <?php foreach ($persons as $person): ?><tr><td><?= e($person['first_name']) ?></td><td><?= e($person['last_name']) ?></td><td><?= e($person['identity_number'] ?: '—') ?></td><td><?= (int) $person['contract_count'] ?></td><td><a class="action-btn primary" href="/pages/person-details.php?id=<?= (int) $person['id'] ?>">عرض</a></td></tr><?php endforeach; ?>
+    <?php foreach ($persons as $person): ?><tr><td><?= bilingual_value($person['first_name'], $person['first_name_fr']) ?></td><td><?= bilingual_value($person['last_name'], $person['last_name_fr']) ?></td><td><?= e($person['identity_number'] ?: '—') ?></td><td><?= (int) $person['contract_count'] ?></td><td><a class="action-btn primary" href="/pages/person-details.php?id=<?= (int) $person['id'] ?>">عرض</a></td></tr><?php endforeach; ?>
     </tbody></table></div>
     <div class="pagination"><span>النتائج <?= $offset + 1 ?>–<?= min($offset + $perPage, $total) ?> من <?= $total ?></span><div class="page-numbers"><?php if ($page > 1): ?><a class="action-btn" href="?<?= e(http_build_query(['q' => $q, 'page' => $page - 1])) ?>">السابق</a><?php endif; ?><span class="badge badge-primary"><?= $page ?> / <?= $pages ?></span><?php if ($page < $pages): ?><a class="action-btn" href="?<?= e(http_build_query(['q' => $q, 'page' => $page + 1])) ?>">التالي</a><?php endif; ?></div></div>
   <?php endif; ?>

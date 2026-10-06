@@ -65,6 +65,7 @@ $avatarLetter = preg_match('/^./us', $user['display_name'], $matches) === 1 ? $m
                 <small><?= e($roleLabel) ?></small>
               </div>
             </div>
+            <button class="language-toggle" type="button" data-language-toggle>Français</button>
             <form action="/logout.php" method="post">
               <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>" />
               <button class="logout-link" type="submit">تسجيل الخروج</button>

@@ -70,7 +70,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>إعداد المسؤول | أرشيف العقود العدلية</title>
     <link rel="stylesheet" href="/css/style.css" />
     <style>
-      body { min-height: 100vh; display: grid; place-items: center; }
+      body { min-height: 100vh; display: grid; place-items: center; position: relative; }
+      .setup-language { position: fixed; top: 1rem; inset-inline-end: 1rem; padding: .55rem .8rem; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--primary); font: inherit; cursor: pointer; }
       .login-shell { width: min(100% - 2rem, 480px); padding: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow); }
       .login-shell h1 { color: var(--primary-strong); }
       .setup-form { display: grid; gap: 1rem; }
@@ -78,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
   </head>
   <body>
+    <button class="setup-language" type="button" data-language-toggle>Français</button>
     <main class="login-shell">
       <h1>إنشاء حساب المسؤول الأول</h1>
       <p>هذه الخطوة متاحة مرة واحدة فقط قبل إنشاء أي مستخدم.</p>
@@ -91,5 +93,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <button class="btn btn-primary" type="submit">إنشاء حساب المسؤول</button>
       </form>
     </main>
+    <script src="/js/i18n.js?v=<?= (int) filemtime(__DIR__ . '/../js/i18n.js') ?>"></script>
   </body>
 </html>

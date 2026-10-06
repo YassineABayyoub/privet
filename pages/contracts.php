@@ -14,18 +14,26 @@ $where = [];
 $params = [];
 
 if ($q !== '') {
-    $where[] = '(c.contract_number LIKE :q_number OR c.reference_text LIKE :q_reference OR c.notes LIKE :q_notes OR EXISTS (
+    $where[] = '(c.contract_number LIKE :q_number OR c.contract_number_fr LIKE :q_number_fr
+      OR c.reference_text LIKE :q_reference OR c.reference_text_fr LIKE :q_reference_fr
+      OR c.notes LIKE :q_notes OR c.notes_fr LIKE :q_notes_fr OR EXISTS (
         SELECT 1 FROM contract_parties cp
         JOIN persons p ON p.id = cp.person_id
         WHERE cp.contract_id = c.id
-          AND (p.first_name LIKE :q_first OR p.last_name LIKE :q_last OR p.identity_number LIKE :q_identity)
+          AND (p.first_name LIKE :q_first OR p.first_name_fr LIKE :q_first_fr
+            OR p.last_name LIKE :q_last OR p.last_name_fr LIKE :q_last_fr OR p.identity_number LIKE :q_identity)
     ))';
     $searchPattern = '%' . $q . '%';
     $params['q_number'] = $searchPattern;
+    $params['q_number_fr'] = $searchPattern;
     $params['q_reference'] = $searchPattern;
+    $params['q_reference_fr'] = $searchPattern;
     $params['q_notes'] = $searchPattern;
+    $params['q_notes_fr'] = $searchPattern;
     $params['q_first'] = $searchPattern;
+    $params['q_first_fr'] = $searchPattern;
     $params['q_last'] = $searchPattern;
+    $params['q_last_fr'] = $searchPattern;
     $params['q_identity'] = $searchPattern;
 }
 if ($category !== '' && in_array($category, array_keys(contract_types()), true)) {
@@ -45,10 +53,16 @@ $pageCount = max(1, (int) ceil($total / $perPage));
 $page = min($page, $pageCount);
 $offset = ($page - 1) * $perPage;
 
-$sql = 'SELECT c.id, c.contract_number, c.category, c.act_type, c.contract_date, c.archive_number,
+$sql = 'SELECT c.id, c.contract_number, c.contract_number_fr, c.category, c.act_type, c.contract_date,
+               c.archive_number, c.archive_number_fr,
                (SELECT GROUP_CONCAT(CONCAT(p.first_name, \' \', p.last_name, \' — \', cp.party_role) SEPARATOR \'، \')
                 FROM contract_parties cp JOIN persons p ON p.id = cp.person_id
-                WHERE cp.contract_id = c.id) AS parties
+                WHERE cp.contract_id = c.id) AS parties,
+               (SELECT GROUP_CONCAT(CONCAT(COALESCE(NULLIF(p.first_name_fr, \'\'), p.first_name), \' \',
+                    COALESCE(NULLIF(p.last_name_fr, \'\'), p.last_name), \' — \',
+                    COALESCE(NULLIF(cp.party_role_fr, \'\'), cp.party_role)) SEPARATOR \', \')
+                FROM contract_parties cp JOIN persons p ON p.id = cp.person_id
+                WHERE cp.contract_id = c.id) AS parties_fr
         FROM contracts c' . $whereSql . '
         ORDER BY c.contract_date DESC, c.id DESC LIMIT :limit OFFSET :offset';
 $statement = $pdo->prepare($sql);
@@ -96,12 +110,12 @@ require __DIR__ . '/../includes/layout-start.php';
           <tbody>
             <?php foreach ($contracts as $contract): ?>
               <tr>
-                <td><?= e($contract['contract_number']) ?></td>
+                <td><?= bilingual_value($contract['contract_number'], $contract['contract_number_fr']) ?></td>
                 <td><?= e($contract['act_type']) ?></td>
                 <td><?= e($contract['category']) ?></td>
                 <td><?= e($contract['contract_date']) ?></td>
-                <td><?= e($contract['parties'] ?: '—') ?></td>
-                <td><?= e($contract['archive_number'] ?: '—') ?></td>
+                <td><?= bilingual_value($contract['parties'] ?: '—', $contract['parties_fr'] ?: '—') ?></td>
+                <td><?= bilingual_value($contract['archive_number'] ?: '—', $contract['archive_number_fr'] ?: $contract['archive_number'] ?: '—') ?></td>
                 <td>
                   <div class="inline-actions">
                     <a class="action-btn primary" href="/pages/contract-details.php?id=<?= (int) $contract['id'] ?>">عرض</a>
